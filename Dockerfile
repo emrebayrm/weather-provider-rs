@@ -1,5 +1,5 @@
 # -------- Stage 1: Builder --------
-FROM rust:1.80 as builder
+FROM rust:slim as builder
 
 # Add target for cross-compiling to ARM64
 RUN rustup target add aarch64-unknown-linux-musl
