@@ -6,11 +6,6 @@ RUN rustup target add aarch64-unknown-linux-musl
 
 WORKDIR /app
 
-# Pre-populate dependencies to cache builds
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release --target aarch64-unknown-linux-musl
-
 # Copy full source and build
 COPY . .
 RUN cargo build --release --target aarch64-unknown-linux-musl
