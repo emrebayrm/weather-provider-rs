@@ -1,8 +1,19 @@
-# -------- Stage 1: Builder --------
-FROM rust:slim as builder
+FROM rust:1.82-slim as builder
 
-# Add target for cross-compiling to ARM64
-RUN rustup target add aarch64-unknown-linux-musl
+# Install required packages, including the musl cross toolchain
+RUN apt-get update && apt-get install -y \
+    musl-tools \
+    gcc-aarch64-linux-gnu \
+    libc6-dev-arm64-cross \
+    pkg-config \
+    cmake \
+    clang \
+    curl \
+    build-essential \
+    && rustup target add aarch64-unknown-linux-musl
+
+# Set linker for musl cross-compilation
+ENV CC_aarch64_unknown_linux_musl=aarch64-linux-gnu-gcc
 
 WORKDIR /app
 
