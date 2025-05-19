@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64 rust:1.82-alpine3.18 AS builder
+FROM --platform=linux/arm64 rust:1.87-alpine3.20 AS builder
 
 # Install required packages, including the musl cross toolchain
 RUN apk add --no-cache openssl-dev musl-dev pkgconf && rustup target add aarch64-unknown-linux-musl
