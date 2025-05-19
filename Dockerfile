@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     clang \
     curl \
     build-essential \
+    libssl-dev \
     && rustup target add aarch64-unknown-linux-musl
 
 # Set linker for musl cross-compilation
