@@ -125,7 +125,7 @@ async fn main() {
 
                 println!("{}", json.to_string());
 
-                match mqtt_client.publish(topic, QoS::AtLeastOnce, false, json) {
+                match mqtt_client.publish(topic, QoS::AtLeastOnce, true, json) {
                     Ok(_) => info!("Published weather to MQTT"),
                     Err(e) => error!("Failed to publish to MQTT: {}", e),
                 }
@@ -140,7 +140,7 @@ async fn main() {
 
                 println!("{}", json.to_string());
 
-                match mqtt_client.publish(topic, QoS::AtLeastOnce, false, json) {
+                match mqtt_client.publish(topic, QoS::AtLeastOnce, true, json) {
                     Ok(_) => info!("Published weather to MQTT"),
                     Err(e) => error!("Failed to publish to MQTT: {}", e),
                 }
