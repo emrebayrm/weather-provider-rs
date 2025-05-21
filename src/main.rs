@@ -1,6 +1,6 @@
 use reqwest;
 use serde::Deserialize;
-use std::time::Duration;
+use std::{env, time::Duration};
 use rumqttc::{MqttOptions, Client, QoS};
 use log::{info, error};
 use tokio::sync::watch;
@@ -62,13 +62,26 @@ fn describe_weather_code(code: u8) -> &'static str {
 
 #[tokio::main]
 async fn main() {
+    // Read from ENV (e.g. set MQTT_USERNAME and MQTT_PASSWORD before running)
+    let username = env::var("MQTT_USERNAME").ok();
+    let password = env::var("MQTT_PASSWORD").ok();
 
     env_logger::init();
     info!("Starting Weather MQTT Publisher...");
 
     // Configure MQTT client
     let mut mqttoptions = MqttOptions::new("weather-client", "localhost", 1883);
-    mqttoptions.set_keep_alive(Duration::from_secs(60));
+    mqttoptions
+        .set_keep_alive(Duration::from_secs(60));
+
+    // Only set credentials when both are provided
+    if let (Some(u), Some(p)) = (username, password) {
+        mqttoptions.set_credentials(&u, &p);
+        info!("Using MQTT credentials from env");
+    } else {
+        info!("No MQTT credentials provided, connecting anonymously");
+    }
+
     let (mut mqtt_client, mut connection) = Client::new(mqttoptions, 10);
 
     let default_config = Configuration{interval_seconds: 10, coordinate: Coordinate{latitude: 52.0155872, longtitude: 4.3497796}}; 
