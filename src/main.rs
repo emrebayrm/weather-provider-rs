@@ -65,12 +65,13 @@ async fn main() {
     // Read from ENV (e.g. set MQTT_USERNAME and MQTT_PASSWORD before running)
     let username = env::var("MQTT_USERNAME").ok();
     let password = env::var("MQTT_PASSWORD").ok();
+    let host = env::var("MQTT_HOST").expect("Host should be given");
 
     env_logger::init();
     info!("Starting Weather MQTT Publisher...");
 
     // Configure MQTT client
-    let mut mqttoptions = MqttOptions::new("weather-client", "localhost", 1883);
+    let mut mqttoptions = MqttOptions::new("weather-client", host, 1883);
     mqttoptions
         .set_keep_alive(Duration::from_secs(60));
 
