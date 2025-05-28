@@ -17,6 +17,7 @@ struct CurrentWeather {
     windspeed: f64,
     winddirection: f64,
     time: String,
+    weathercode: u8,
 }
 
 #[derive(Debug, Deserialize, serde::Serialize)]
