@@ -2,9 +2,10 @@ use reqwest;
 use serde::Deserialize;
 use std::{env, time::Duration};
 use rumqttc::{MqttOptions, Client, QoS};
-use log::{info, error};
+use log::{info, warn, error};
 use tokio::sync::watch;
 use rumqttc::{Packet, Event};
+use ini::Ini;
 
 #[derive(Debug, Deserialize)]
 struct WeatherResponse {
@@ -43,6 +44,57 @@ struct Coordinate{
 struct Configuration {
     interval_seconds: u64,
     coordinate: Coordinate,
+}
+
+// Looks for `--config <path>`, `-c <path>` or `--config=<path>` among the CLI args.
+fn config_path_from_args() -> Option<String> {
+    let args: Vec<String> = env::args().collect();
+    let mut iter = args.iter().skip(1);
+    while let Some(arg) = iter.next() {
+        if arg == "--config" || arg == "-c" {
+            return iter.next().cloned();
+        }
+        if let Some(path) = arg.strip_prefix("--config=") {
+            return Some(path.to_string());
+        }
+    }
+    None
+}
+
+fn load_config_from_ini(path: &str) -> Option<Configuration> {
+    let conf = Ini::load_from_file(path)
+        .map_err(|e| warn!("Could not read config file {}: {}", path, e))
+        .ok()?;
+    let section = conf.section(Some("weather")).unwrap_or_else(|| conf.general_section());
+
+    let interval_seconds = section.get("interval_seconds")?.parse().ok()?;
+    let latitude = section.get("latitude")?.parse().ok()?;
+    let longtitude = section.get("longitude")?.parse().ok()?;
+
+    Some(Configuration {
+        interval_seconds,
+        coordinate: Coordinate { latitude, longtitude },
+    })
+}
+
+// Config file (ini) takes precedence when given as a CLI argument, then the
+// WEATHER_CONFIG_FILE env var, falling back to the built-in default.
+fn resolve_initial_config(default_config: Configuration) -> Configuration {
+    let path = config_path_from_args().or_else(|| env::var("WEATHER_CONFIG_FILE").ok());
+
+    match path {
+        Some(path) => match load_config_from_ini(&path) {
+            Some(cfg) => {
+                info!("Loaded config from {}", path);
+                cfg
+            }
+            None => {
+                warn!("Failed to load config from {}, using default config", path);
+                default_config
+            }
+        },
+        None => default_config,
+    }
 }
 
 fn describe_weather_code(code: u8) -> &'static str {
@@ -86,9 +138,10 @@ async fn main() {
 
     let (mut mqtt_client, mut connection) = Client::new(mqttoptions, 10);
 
-    let default_config = Configuration{interval_seconds: 10, coordinate: Coordinate{latitude: 52.0155872, longtitude: 4.3497796}}; 
+    let default_config = Configuration{interval_seconds: 10, coordinate: Coordinate{latitude: 52.0155872, longtitude: 4.3497796}};
+    let initial_config = resolve_initial_config(default_config);
 
-    let (config_tx, config_rx) = watch::channel(default_config);
+    let (config_tx, config_rx) = watch::channel(initial_config);
 
     // Subscribe to config topic
     mqtt_client.subscribe("weather/configs", QoS::AtLeastOnce).unwrap();
