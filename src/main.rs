@@ -113,11 +113,17 @@ fn describe_weather_code(code: u8) -> &'static str {
     }
 }
 
+const DEFAULT_INTERVAL: u64 = 60 * 60 * 6;
+
 #[tokio::main]
 async fn main() {
     // Read from ENV (e.g. set MQTT_USERNAME and MQTT_PASSWORD before running)
     let username = env::var("MQTT_USERNAME").ok();
     let password = env::var("MQTT_PASSWORD").ok();
+    let interval = env::var("PUBLISH_INTERVAL")
+                            .ok()
+                            .and_then(|port| port.parse::<u64>().ok())
+                            .unwrap_or(DEFAULT_INTERVAL);
     let host = env::var("MQTT_HOST").expect("Host should be given");
 
     env_logger::init();
@@ -138,7 +144,7 @@ async fn main() {
 
     let (mut mqtt_client, mut connection) = Client::new(mqttoptions, 10);
 
-    let default_config = Configuration{interval_seconds: 10, coordinate: Coordinate{latitude: 52.0155872, longtitude: 4.3497796}};
+    let default_config = Configuration{interval_seconds:interval , coordinate: Coordinate{latitude: 52.0155872, longtitude: 4.3497796}};
     let initial_config = resolve_initial_config(default_config);
 
     let (config_tx, config_rx) = watch::channel(initial_config);
