@@ -97,22 +97,6 @@ fn resolve_initial_config(default_config: Configuration) -> Configuration {
     }
 }
 
-fn describe_weather_code(code: u8) -> &'static str {
-    match code {
-        0 => "Clear sky",
-        1 => "Mainly clear",
-        2 => "Partly cloudy",
-        3 => "Overcast",
-        45 | 48 => "Fog",
-        51..=57 => "Drizzle",
-        61..=67 => "Rain",
-        71..=77 => "Snow",
-        80..=82 => "Showers",
-        95 => "Thunderstorm",
-        _ => "Unknown",
-    }
-}
-
 const DEFAULT_INTERVAL: u64 = 60 * 60 * 6;
 
 #[tokio::main]
@@ -177,20 +161,6 @@ async fn main() {
 
     loop {
         let mut current_config = config_rx.borrow().clone();
-        let mut elapsed = 0;
-        
-        while elapsed < current_config.interval_seconds {
-            tokio::time::sleep(Duration::from_secs(1)).await;
-        
-            let latest = config_rx.borrow();
-            if latest.interval_seconds != current_config.interval_seconds {
-                // Config changed; restart with new interval
-                current_config = latest.clone();
-                elapsed = 0;
-            } else {
-                elapsed += 1;
-            }
-        }
 
         match fetch_weather_current(&current_config.coordinate).await {
             Ok(weather) => {
@@ -221,6 +191,21 @@ async fn main() {
             }
             Err(e) => error!("Failed to fetch weather: {}", e),
         }
+
+        let mut elapsed = 0;
+        while elapsed < current_config.interval_seconds {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        
+            let latest = config_rx.borrow();
+            if latest.interval_seconds != current_config.interval_seconds {
+                // Config changed; restart with new interval
+                current_config = latest.clone();
+                elapsed = 0;
+            } else {
+                elapsed += 1;
+            }
+        }
+
     }
 }
 
